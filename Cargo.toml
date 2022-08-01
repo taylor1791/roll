@@ -1,0 +1,20 @@
+[package]
+name = "roll"
+version = "0.1.0"
+description = "An advanced dice roller and probability calculator."
+authors = ["Taylor Everding <taylor1791@users.noreply.github.com>"]
+license = "MIT"
+repository = "git@github.com:taylor1791/dice.git"
+homepage = "https://github.com/taylor1791/dice"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+atty = "0.2"
+clap = { version = "3.2", features = ["derive", "wrap_help"] }
+env_logger = "0.9"
+human-panic = "1"
+log = "0.4"
+owo-colors = { version = "3.4.0", features = ["supports-colors"] }
+rand = "0.8"
+thiserror = "1"
