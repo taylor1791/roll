@@ -191,3 +191,132 @@ impl TryFrom<Tokens> for Expression {
         Ok(Expression { n, sides, modifier })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck_macros::quickcheck;
+    use std::str::FromStr;
+
+    #[test]
+    fn none() {
+        let expression = Expression::from_str("");
+
+        assert!(expression.unwrap_err().to_string() == "expression invalid");
+    }
+
+    #[test]
+    fn invalid_token() {
+        let expression = Expression::from_str("cs");
+
+        assert!(expression.unwrap_err().to_string() == "unexpected token 'c' at position 0");
+    }
+
+    #[quickcheck]
+    fn constant(seed: u64) -> bool {
+        let expression = Expression::from_str("3").unwrap();
+
+        assert!(expression.to_string() == "3");
+        expression.exec(seed) == (vec![], 3)
+    }
+
+    #[quickcheck]
+    fn plus(seed: u64) -> bool {
+        let expression = Expression::from_str("+2").unwrap();
+
+        assert!(expression.to_string() == "2");
+        expression.exec(seed) == (vec![], 2)
+    }
+
+    #[test]
+    fn plus_plus() {
+        let expression = Expression::from_str("++9");
+
+        assert!(expression.is_err());
+        // expression.unwrap().exec(seed) == (vec![], 9)
+    }
+
+    #[quickcheck]
+    fn minus(seed: u64) -> bool {
+        let expression = Expression::from_str("-10").unwrap();
+
+        assert!(expression.to_string() == "-10");
+        expression.exec(seed) == (vec![], -10)
+    }
+
+    #[test]
+    fn minus_minus() {
+        let expression = Expression::from_str("--127");
+
+        assert!(expression.is_err());
+        // expression.unwrap().exec(seed) == (vec![], 127)
+    }
+
+    #[quickcheck]
+    fn dice(seed: u64) -> bool {
+        let expression = Expression::from_str("d6").unwrap();
+        let (rolls, sum) = expression.exec(seed);
+
+        assert!(expression.to_string() == "1d6");
+        all_in_range(&rolls, 1, 6) && in_range(sum, 1, 6)
+    }
+
+    #[test]
+    fn missing_dice() {
+        let expression = Expression::from_str("10d");
+
+        assert!(expression.unwrap_err().to_string() == "expected number after token 'd'");
+    }
+
+    #[quickcheck]
+    fn n_dice(seed: u64) -> bool {
+        let expression = Expression::from_str("10d10").unwrap();
+        let (rolls, sum) = expression.exec(seed);
+
+        assert!(expression.to_string() == "10d10");
+        all_in_range(&rolls, 1, 10) && in_range(sum, 10, 100)
+    }
+
+    #[quickcheck]
+    fn plus_mod(seed: u64) -> bool {
+        let expression = Expression::from_str("4d4+1").unwrap();
+        let (rolls, sum) = expression.exec(seed);
+
+        assert!(expression.to_string() == "4d4 + 1");
+        all_in_range(&rolls, 1, 4) && in_range(sum, 5, 17)
+    }
+
+    #[test]
+    fn missing_mod() {
+        let expression = Expression::from_str("2d6 + ");
+
+        assert!(expression.unwrap_err().to_string() == "unexpected end of expression");
+    }
+
+    #[quickcheck]
+    fn minus_mod(seed: u64) -> bool {
+        let expression = Expression::from_str("1d2 - 1").unwrap();
+        let (rolls, sum) = expression.exec(seed);
+
+        assert!(expression.to_string() == "1d2 - 1");
+        all_in_range(&rolls, 1, 2) && in_range(sum, 0, 1)
+    }
+
+    #[test]
+    fn minus_minus_mod() {
+        let expression = Expression::from_str("2d12 - -12");
+
+        assert!(expression.is_err());
+        // all_in_range(&rolls, 1, 12) && in_range(sum, 14, 36)
+    }
+
+    fn all_in_range(rolls: &[Roll], min: u64, max: u64) -> bool {
+        rolls
+            .iter()
+            .all(|roll| roll.value >= min && roll.value <= max && roll.sides == max)
+    }
+
+    fn in_range(n: i64, min: i64, max: i64) -> bool {
+        n >= min && n <= max
+    }
+}

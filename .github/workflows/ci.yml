@@ -1,0 +1,53 @@
+name: CI Suite
+on:
+  push:
+  schedule:
+    - cron: "21 11 * * *"
+
+concurrency:
+  group: '${{github.workflow}}@${{github.head_ref || github.ref}}'
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  NIX_SHELL_CLOSURE: /tmp/nix-develop.closure
+
+jobs:
+  ci:
+    name: API CI Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Remove conflicting versions
+        run: rm -rf ~/.cargo
+
+      - uses: actions/cache@v2
+        id: restore-cache
+        with:
+          path: |
+            ${{env.NIX_SHELL_CLOSURE}}
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ./target/
+          key: ${{runner.os}}-${{runner.arch}}-${{hashFiles('flake*', 'Cargo.lock')}}
+          restore-keys: ${{runner.os}}-${{runner.arch}}-
+
+      - name: Setup Nix
+        uses: ./.github/actions/nix
+        with:
+          closure-path: ${{env.NIX_SHELL_CLOSURE}}
+          restore-closure: ${{steps.restore-cache.outputs.cache-hit}}
+          flake-path: ${{github.workspace}}
+
+      - name: Run cargo test
+        run: nix develop --command cargo test
+        if: always()
+
+      - name: Run cargo clippy --all-targets --all-features -- -D warnings
+        run: nix develop --command cargo clippy --all-targets --all-features -- -D warnings
+        if: always()
+
+      - name: Run cargo fmt --check
+        run: nix develop --command cargo fmt -- --check
+        if: always()

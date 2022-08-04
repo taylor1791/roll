@@ -1,0 +1,37 @@
+name: "Create Nix Environment"
+description: "Installs nix and restores the store cache"
+inputs:
+  closure-path:
+    description: "Exports a closure file here"
+    required: true
+  restore-closure:
+    description: "When true import the closure at closure-path, otherwise it is exported there."
+    required: true
+  flake-path:
+    description: "The directory in which the flake resides."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - run: echo "NIX_PROFILE_PATH=/tmp/nix-profile" >> "$GITHUB_ENV"
+      shell: bash
+    - name: Install nix
+      uses: cachix/install-nix-action@v16
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - name: Import closure
+      run: nix-store --import < ${{inputs.closure-path}}
+      shell: bash
+      if: inputs.restore-closure == 'true'
+
+    - name: Create the nix shell
+      run: nix develop ${{inputs.flake-path}} --profile $NIX_PROFILE_PATH --command true
+      shell: bash
+
+    - name: Export closure
+      run: nix-store --export $(nix-store --query --requisites --include-outputs $(readlink -f $NIX_PROFILE_PATH)) > ${{inputs.closure-path}}
+      shell: bash
+      if: inputs.restore-closure != 'true'
