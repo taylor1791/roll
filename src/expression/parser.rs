@@ -4,16 +4,17 @@ use nom::{
     bytes::complete::{tag, take_while},
     character::complete::one_of,
     combinator::{all_consuming, fail, map, map_res, opt, recognize},
+    error::VerboseError,
     multi::many1,
     sequence::{delimited, terminated},
     IResult,
 };
 
-pub fn parse(i: &str) -> IResult<&str, Expression> {
-    all_consuming(terminated(expression, opt(space)))(i)
+pub fn parse(i: &str) -> Result<(&str, Expression), VerboseError<&str>> {
+    nom::Finish::finish(all_consuming(terminated(expression, opt(space)))(i))
 }
 
-fn expression(i: &str) -> IResult<&str, Expression> {
+fn expression(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     precedence::precedence(
         alt((
             prefix_op(operators::MINUS),
@@ -93,7 +94,7 @@ fn expression(i: &str) -> IResult<&str, Expression> {
 
 fn binary_op(
     operator: operators::Binary,
-) -> impl FnMut(&str) -> IResult<&str, precedence::Binary<&str, u64>> {
+) -> impl FnMut(&str) -> IResult<&str, precedence::Binary<&str, u64>, VerboseError<&str>> {
     move |i: &str| {
         if operator.space {
             precedence::binary_op(
@@ -109,25 +110,25 @@ fn binary_op(
 
 fn prefix_op(
     operator: operators::Unary,
-) -> impl FnMut(&str) -> IResult<&str, precedence::Unary<&str, u64>> {
+) -> impl FnMut(&str) -> IResult<&str, precedence::Unary<&str, u64>, VerboseError<&str>> {
     move |i: &str| precedence::unary_op(operator.precedence, tag(operator.symbol))(i)
 }
 
-fn space_delimited(s: &str) -> impl FnMut(&str) -> IResult<&str, &str> + '_ {
+fn space_delimited(s: &str) -> impl FnMut(&str) -> IResult<&str, &str, VerboseError<&str>> + '_ {
     move |i: &str| delimited(space, tag(s), space)(i)
 }
 
-fn literal(i: &str) -> IResult<&str, Expression> {
+fn literal(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     map(decimal, Expression::Literal)(i)
 }
 
-fn decimal(i: &str) -> IResult<&str, i64> {
+fn decimal(i: &str) -> IResult<&str, i64, VerboseError<&str>> {
     map_res(recognize(many1(one_of("0123456789"))), |out: &str| {
         str::parse(out).map_err(|_| ())
     })(i)
 }
 
-fn space(i: &str) -> IResult<&str, &str> {
+fn space(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
     let chars = " \t\r\n";
 
     take_while(move |c| chars.contains(c))(i)

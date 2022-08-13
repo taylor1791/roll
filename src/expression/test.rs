@@ -199,6 +199,56 @@ fn trailing_space(seed: u64) -> bool {
         && expression.to_string() == "1d20"
 }
 
+#[test]
+fn unexpected_end_empty_string() {
+    let expression = Expression::from_str("");
+
+    assert!(expression
+        .unwrap_err()
+        .to_string()
+        .contains("Unexpected end of input."));
+}
+
+#[test]
+fn unexpected_end_expression() {
+    let expression = Expression::from_str("10d");
+
+    assert!(expression
+        .unwrap_err()
+        .to_string()
+        .contains("Unexpected end of input."));
+}
+
+#[test]
+fn unexpected_token_start() {
+    let expression = Expression::from_str("cs");
+
+    assert!(expression
+        .unwrap_err()
+        .to_string()
+        .contains("Unexpected token at position 1."),);
+}
+
+#[test]
+fn unexpected_token_in_subexpression() {
+    let expression = Expression::from_str("1d(1+)");
+
+    assert!(expression
+        .unwrap_err()
+        .to_string()
+        .contains("Unexpected token at position 6."),);
+}
+
+#[test]
+fn unexpected_token_erroneous_character() {
+    let expression = Expression::from_str("3d6    e");
+
+    assert!(expression
+        .unwrap_err()
+        .to_string()
+        .contains("Unexpected token at position 8."),);
+}
+
 fn all_in_range(
     rolls: &HashMap<u64, Vec<u64>>,
     dice: HashSet<u64>,

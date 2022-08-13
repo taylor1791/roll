@@ -1,3 +1,4 @@
+use owo_colors::OwoColorize;
 use std::collections::HashMap;
 
 mod interpreter;
@@ -75,13 +76,41 @@ impl Expression {
     }
 }
 
+#[derive(Debug)]
+pub struct ParseError {
+    err: anyhow::Error,
+    expression: String,
+    token: Option<(usize, usize)>,
+}
+
+fn convert_error(input: &str, nom_error: nom::error::VerboseError<&str>) -> ParseError {
+    let (position, length) = match nom_error.errors.as_slice() {
+        [(substring, _), ..] => (nom::Offset::offset(input, substring), substring.len()),
+        _ => (0, input.len()),
+    };
+
+    if position == input.len() {
+        ParseError {
+            err: anyhow::anyhow!(format!("Unexpected end of input.")),
+            expression: String::from(input),
+            token: None,
+        }
+    } else {
+        ParseError {
+            err: anyhow::anyhow!(format!("Unexpected token at position {}.", position + 1)),
+            expression: String::from(input),
+            token: Some((position, length)),
+        }
+    }
+}
+
 impl std::str::FromStr for Expression {
-    type Err = anyhow::Error;
+    type Err = ParseError;
 
     fn from_str(i: &str) -> Result<Self, Self::Err> {
         match parser::parse(i) {
             Ok((_, expression)) => Ok(expression),
-            Err(err) => Err(anyhow::anyhow!("{}", err)),
+            Err(err) => Err(convert_error(i, err)),
         }
     }
 }
@@ -147,3 +176,25 @@ impl ToString for Expression {
         }
     }
 }
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        formatter.write_fmt(format_args!("{}\n", self.err))?;
+
+        if let Some((position, length)) = self.token {
+            formatter.write_str("\n")?;
+            formatter.write_fmt(format_args!("    {}\n", "|".blue()))?;
+            formatter.write_fmt(format_args!("    {}    {}\n", "|".blue(), self.expression))?;
+            formatter.write_fmt(format_args!(
+                "    {}    {}{}\n",
+                "|".blue(),
+                " ".repeat(position),
+                "^".repeat(length).red()
+            ))?;
+        }
+
+        Ok(())
+    }
+}
+
+impl std::error::Error for ParseError {}
