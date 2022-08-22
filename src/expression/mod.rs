@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 mod interpreter;
 mod operators;
+mod parse;
 mod parser;
 
 #[allow(clippy::all)]

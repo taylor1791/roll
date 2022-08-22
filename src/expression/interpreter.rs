@@ -1,7 +1,5 @@
 use super::Expression;
 
-const MAX_SIDES: u64 = 2u64.pow(13);
-
 pub fn evaluate(
     rng: &mut rand::rngs::StdRng,
     rolls: &mut std::collections::HashMap<u64, Vec<u64>>,
@@ -15,29 +13,7 @@ pub fn evaluate(
         } => {
             let left = evaluate(rng, rolls, left)?;
             let right = evaluate(rng, rolls, right_e)?;
-
-            if right < 1 {
-                return Err(anyhow::anyhow!(format!(
-                    "The expression {} evaluated to, {}, a non-positive number.",
-                    right_e.to_string(),
-                    right,
-                ))
-                .context("Dice with non-positive sides are not supported."));
-            }
-
-            if right > 1024 {
-                return Err(anyhow::anyhow!(format!(
-                    "The expression {} evaluated to {}.",
-                    right_e.to_string(),
-                    right
-                ))
-                .context(format!(
-                    "Dice with more than {} sides are not supported.",
-                    MAX_SIDES
-                )));
-            }
-
-            let right = TryInto::<u64>::try_into(right).unwrap();
+            let right = super::parse::die(right, right_e)?;
 
             let mut sum = 0;
             for _ in 0..left {
@@ -60,15 +36,7 @@ pub fn evaluate(
         } => {
             let left = evaluate(rng, rolls, left)?;
             let right = evaluate(rng, rolls, right_e)?;
-            let right = u32::try_from(right).map_err(|err| {
-                anyhow::anyhow!(err)
-                    .context(format!(
-                        "The expression {} evaluated to {}, a negative number",
-                        right_e.to_string(),
-                        right
-                    ))
-                    .context("Negative exponents are not supported")
-            })?;
+            let right = super::parse::exponent(right, right_e)?;
             Ok(left.pow(right))
         }
         Expression::Sum { left, right, .. } => {
