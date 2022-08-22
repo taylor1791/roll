@@ -1,62 +1,30 @@
-use super::expression::{Evaluand, Expression};
-use clap::Parser;
+use crate::expression::{Evaluand, Expression};
 use owo_colors::OwoColorize;
 use std::fmt::{Display, Formatter};
 
-pub struct Output {
-    formatter: Box<dyn Display>,
-}
-
-impl Output {
-    pub fn from(args: Arguments, evaluand: Evaluand) -> Self {
-        let formatter: Box<dyn Display> = if args.json {
-            Box::from(JsonFormatter { evaluand })
-        } else {
-            let colors = atty::is(atty::Stream::Stdout) || args.colors;
-
-            Box::from(TextFormatter {
-                colors,
-                evaluand,
-                expression: args.expression,
-            })
-        };
-
-        Output { formatter }
-    }
-}
-
-struct JsonFormatter {
+pub struct JsonFormatter {
     evaluand: Evaluand,
 }
 
-struct TextFormatter {
+impl JsonFormatter {
+    pub fn from(evaluand: Evaluand) -> Self {
+        JsonFormatter { evaluand }
+    }
+}
+
+pub struct TextFormatter {
     colors: bool,
     evaluand: Evaluand,
     expression: Expression,
 }
 
-#[derive(Debug, Parser)]
-#[clap(author, version, about)]
-pub struct Arguments {
-    /// Forces color output (even if stdout is not a TTY).
-    #[clap(long)]
-    pub colors: bool,
-
-    /// Print JSON to stdout
-    #[clap(long)]
-    pub json: bool,
-
-    /// Seeds the rng
-    #[clap(long)]
-    pub seed: Option<u64>,
-
-    /// The dice expression to evaluate.
-    pub expression: Expression,
-}
-
-impl Display for Output {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), std::fmt::Error> {
-        self.formatter.fmt(formatter)
+impl TextFormatter {
+    pub fn from(args: super::Arguments, evaluand: Evaluand) -> Self {
+        TextFormatter {
+            colors: args.use_colors(),
+            evaluand,
+            expression: args.expression,
+        }
     }
 }
 
