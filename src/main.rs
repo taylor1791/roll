@@ -3,6 +3,7 @@ use human_panic::setup_panic;
 use log::trace;
 
 mod cli;
+mod command;
 mod expression;
 
 fn main() -> Result<()> {
@@ -10,11 +11,13 @@ fn main() -> Result<()> {
     env_logger::init();
     trace!("Logger initialized");
 
-    let args = cli::Arguments::parse();
-    let evaluand = args.expression.eval(args.seed)?;
-    trace!("Evaluated: {:?}", evaluand);
+    let (cmd, args) = cli::Arguments::parse();
+    trace!("Command: {:?}", cmd);
 
-    let formatter = cli::CliFormatter::from(args, evaluand);
+    let output = cmd.exec()?;
+    trace!("Evaluated: {:?}", output);
+
+    let formatter = output.formatter(args);
     println!("{}", formatter);
 
     Ok(())

@@ -105,6 +105,27 @@ fn convert_error(input: &str, nom_error: nom::error::VerboseError<&str>) -> Pars
     }
 }
 
+impl serde::Serialize for Evaluand {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("value", &self.value)?;
+        map.serialize_entry(
+            "rolls",
+            &self
+                .rolls
+                .iter()
+                .map(|(k, v)| (format!("d{}", k), v))
+                .collect::<std::collections::HashMap<_, _>>(),
+        )?;
+        map.end()
+    }
+}
+
 impl std::str::FromStr for Expression {
     type Err = ParseError;
 

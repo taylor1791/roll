@@ -1,14 +1,37 @@
+use super::Command;
 use crate::expression::{Evaluand, Expression};
 use owo_colors::OwoColorize;
 use std::fmt::{Display, Formatter};
 
-pub struct JsonFormatter {
-    evaluand: Evaluand,
+#[derive(Debug)]
+pub struct Roll {
+    expression: Expression,
+    seed: u64,
 }
 
-impl JsonFormatter {
-    pub fn from(evaluand: Evaluand) -> Self {
-        JsonFormatter { evaluand }
+impl Roll {
+    pub fn new(expression: Expression, seed: u64) -> Self {
+        Self { expression, seed }
+    }
+}
+
+impl Command for Roll {
+    type Output = Evaluand;
+
+    fn exec(&self) -> Result<Self::Output, anyhow::Error> {
+        self.expression.eval(self.seed)
+    }
+
+    fn formatter(
+        self,
+        args: crate::cli::Arguments,
+        output: Self::Output,
+    ) -> Box<dyn std::fmt::Display> {
+        Box::from(TextFormatter {
+            colors: args.use_colors(),
+            evaluand: output,
+            expression: self.expression,
+        })
     }
 }
 
@@ -16,35 +39,6 @@ pub struct TextFormatter {
     colors: bool,
     evaluand: Evaluand,
     expression: Expression,
-}
-
-impl TextFormatter {
-    pub fn from(args: super::Arguments, evaluand: Evaluand) -> Self {
-        TextFormatter {
-            colors: args.use_colors(),
-            evaluand,
-            expression: args.expression,
-        }
-    }
-}
-
-impl Display for JsonFormatter {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), std::fmt::Error> {
-        let rolls = self
-            .evaluand
-            .rolls
-            .iter()
-            .map(|(k, v)| (format!("d{}", k), v))
-            .collect::<std::collections::HashMap<_, _>>();
-
-        formatter.write_fmt(format_args!(
-            "{}",
-            serde_json::json!({
-                "value": self.evaluand.value,
-                "rolls": rolls
-            })
-        ))
-    }
 }
 
 impl Display for TextFormatter {

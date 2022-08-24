@@ -1,54 +1,81 @@
-use crate::expression::{Evaluand, Expression};
+use crate::command::{Command, Roll};
 use clap::Parser;
-use log::{info, trace};
-use std::fmt::{Display, Formatter};
-
-mod roll;
+use log::warn;
 
 pub struct Arguments {
     colors: bool,
-    pub expression: Expression,
     json: bool,
-    pub seed: u64,
 }
 
 impl Arguments {
-    fn use_colors(&self) -> bool {
+    pub fn parse() -> (CliCommand, Self) {
+        let args = RawArguments::parse();
+        let seed = args
+            .seed
+            .unwrap_or_else(|| rand::RngCore::next_u64(&mut rand::rngs::OsRng));
+        let command = CliCommand::Roll(Roll::new(args.expression, seed));
+
+        (
+            command,
+            Self {
+                colors: args.colors,
+                json: args.json,
+            },
+        )
+    }
+
+    pub fn use_colors(&self) -> bool {
         atty::is(atty::Stream::Stdout) || self.colors
     }
 }
 
-impl Arguments {
-    pub fn parse() -> Self {
-        let args = RawArguments::parse();
-        trace!("Parsed Expression: {:?}", args.expression);
+#[derive(Debug)]
+pub enum CliCommand {
+    Roll(Roll),
+}
 
-        let seed = args
-            .seed
-            .unwrap_or_else(|| rand::RngCore::next_u64(&mut rand::rngs::OsRng));
-        info!("Using seed: {}", seed);
-
-        Self {
-            colors: args.colors,
-            expression: args.expression,
-            json: args.json,
-            seed,
+impl CliCommand {
+    pub fn exec(self) -> Result<CliOutput, anyhow::Error> {
+        match self {
+            CliCommand::Roll(roll) => {
+                let output = roll.exec()?;
+                Ok(CliOutput::Roll(roll, output))
+            }
         }
     }
 }
 
-pub struct CliFormatter {
-    formatter: Box<dyn Display>,
+pub enum CliOutput {
+    Roll(Roll, crate::expression::Evaluand),
 }
 
-impl CliFormatter {
-    pub fn from(args: Arguments, evaluand: Evaluand) -> Self {
-        Self {
-            formatter: match args.json {
-                true => Box::from(roll::JsonFormatter::from(evaluand)),
-                false => Box::from(roll::TextFormatter::from(args, evaluand)),
-            },
+impl CliOutput {
+    pub fn formatter(self, args: Arguments) -> Box<dyn std::fmt::Display> {
+        if args.json {
+            return match self {
+                CliOutput::Roll(_, output) => Box::from(JsonFormatter(output)),
+            };
         }
+
+        match self {
+            CliOutput::Roll(roll, output) => roll.formatter(args, output),
+        }
+    }
+}
+
+struct JsonFormatter<A>(A);
+
+impl<A> std::fmt::Display for JsonFormatter<A>
+where
+    A: serde::Serialize,
+{
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let json = serde_json::to_string(&self.0).map_err(|err| {
+            warn!("{}", err);
+            std::fmt::Error
+        })?;
+
+        formatter.write_str(&json)
     }
 }
 
@@ -72,11 +99,13 @@ struct RawArguments {
     seed: Option<u64>,
 
     /// The dice expression to evaluate.
-    expression: Expression,
+    expression: crate::expression::Expression,
 }
 
-impl Display for CliFormatter {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), std::fmt::Error> {
-        self.formatter.fmt(formatter)
+impl std::fmt::Debug for CliOutput {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            CliOutput::Roll(_, output) => std::fmt::Debug::fmt(output, formatter),
+        }
     }
 }
