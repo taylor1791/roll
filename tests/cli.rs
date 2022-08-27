@@ -2,6 +2,18 @@ use assert_cmd::prelude::{CommandCargoExt, OutputAssertExt};
 use std::process::Command;
 
 #[test]
+fn json() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
+
+    cmd.arg("--json").arg("--seed").arg("45").arg("3d6");
+    cmd.assert()
+        .success()
+        .stdout("{\"value\":8,\"rolls\":{\"d6\":[3,3,2]}}\n");
+
+    Ok(())
+}
+
+#[test]
 fn tty() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin(env!("CARGO_PKG_NAME"))?;
 
