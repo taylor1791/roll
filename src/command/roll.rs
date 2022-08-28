@@ -1,5 +1,7 @@
 use super::Command;
 use crate::expression::{Evaluand, Expression};
+use ibig::UBig;
+use num_traits::One;
 use owo_colors::OwoColorize;
 use std::fmt::{Display, Formatter};
 
@@ -65,7 +67,7 @@ impl Display for TextFormatter {
             dice_rolls.sort_unstable();
 
             for (i, roll) in dice_rolls.iter().enumerate() {
-                let style = if *roll == 1 {
+                let style = if *roll == UBig::one() {
                     red
                 } else if roll == dice {
                     green

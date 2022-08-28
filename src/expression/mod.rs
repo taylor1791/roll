@@ -1,3 +1,4 @@
+use ibig::{IBig, UBig};
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
 
@@ -42,13 +43,13 @@ pub enum Expression {
         operand: Box<Expression>,
         operator: operators::Unary,
     },
-    Literal(i64),
+    Literal(IBig),
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Evaluand {
-    pub rolls: HashMap<u64, Vec<u64>>,
-    pub value: i64,
+    pub rolls: HashMap<UBig, Vec<UBig>>,
+    pub value: IBig,
 }
 
 impl Expression {
@@ -84,6 +85,9 @@ pub struct ParseError {
     token: Option<(usize, usize)>,
 }
 
+struct DiceRollsSerializer<'a>(&'a HashMap<UBig, Vec<UBig>>);
+struct RollsSerializer<'a>(&'a Vec<UBig>);
+
 fn convert_error(input: &str, nom_error: nom::error::VerboseError<&str>) -> ParseError {
     let (position, length) = match nom_error.errors.as_slice() {
         [(substring, _), ..] => (nom::Offset::offset(input, substring), substring.len()),
@@ -113,16 +117,64 @@ impl serde::Serialize for Evaluand {
         use serde::ser::SerializeMap;
 
         let mut map = serializer.serialize_map(Some(2))?;
-        map.serialize_entry("value", &self.value)?;
-        map.serialize_entry(
-            "rolls",
-            &self
-                .rolls
-                .iter()
-                .map(|(k, v)| (format!("d{}", k), v))
-                .collect::<std::collections::HashMap<_, _>>(),
-        )?;
+        match ibig_to_serde(&self.value) {
+            Ok(value) => map.serialize_entry("value", &value)?,
+            Err(value) => map.serialize_entry("value", &value)?,
+        };
+        map.serialize_entry("rolls", &DiceRollsSerializer(&self.rolls))?;
+
         map.end()
+    }
+}
+
+impl<'a> serde::Serialize for DiceRollsSerializer<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(Some(self.0.len()))?;
+        for (sides, rolls) in self.0 {
+            map.serialize_entry(&format!("d{}", sides), &RollsSerializer(rolls))?;
+        }
+        map.end()
+    }
+}
+
+impl<'a> serde::Serialize for RollsSerializer<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeSeq;
+
+        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
+        for roll in self.0 {
+            match ibig_to_serde(&IBig::from(roll)) {
+                Ok(value) => seq.serialize_element(&value)?,
+                Err(value) => seq.serialize_element(&value)?,
+            };
+        }
+        seq.end()
+    }
+}
+
+const MAX_SAFE_INTEGER: i64 = 9007199254740991;
+const MIN_SAFE_INTEGER: i64 = -9007199254740991;
+
+fn ibig_to_serde(value: &IBig) -> Result<i64, String> {
+    let value_str = value.to_string();
+
+    match <i64 as std::str::FromStr>::from_str(&value_str) {
+        Ok(value) => {
+            if value > MAX_SAFE_INTEGER || value < MIN_SAFE_INTEGER {
+                return Err(value_str);
+            }
+
+            Ok(value)
+        }
+        Err(_) => Err(value_str),
     }
 }
 

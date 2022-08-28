@@ -1,4 +1,5 @@
 use super::{operators, precedence, Expression};
+use ibig::IBig;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while},
@@ -9,6 +10,7 @@ use nom::{
     sequence::{delimited, terminated},
     IResult,
 };
+use num_traits::One;
 
 pub fn parse(i: &str) -> Result<(&str, Expression), VerboseError<&str>> {
     nom::Finish::finish(all_consuming(terminated(expression, opt(space)))(i))
@@ -65,7 +67,7 @@ fn expression(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
             precedence::Operation::Prefix(operator, operand) => {
                 if operator == operators::DICE.symbol {
                     Ok::<Expression, Expression>(Expression::Dice {
-                        left: Box::from(Expression::Literal(1)),
+                        left: Box::from(Expression::Literal(IBig::one())),
                         right: Box::from(operand),
                         operator: operators::DICE,
                     })
@@ -122,7 +124,7 @@ fn literal(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     map(decimal, Expression::Literal)(i)
 }
 
-fn decimal(i: &str) -> IResult<&str, i64, VerboseError<&str>> {
+fn decimal(i: &str) -> IResult<&str, IBig, VerboseError<&str>> {
     map_res(recognize(many1(one_of("0123456789"))), |out: &str| {
         str::parse(out).map_err(|_| ())
     })(i)
