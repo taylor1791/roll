@@ -1,3 +1,4 @@
+use crate::ibig_serializer::JsonSafeIBigSerializer;
 use ibig::{IBig, UBig};
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
@@ -117,10 +118,7 @@ impl serde::Serialize for Evaluand {
         use serde::ser::SerializeMap;
 
         let mut map = serializer.serialize_map(Some(2))?;
-        match ibig_to_serde(&self.value) {
-            Ok(value) => map.serialize_entry("value", &value)?,
-            Err(value) => map.serialize_entry("value", &value)?,
-        };
+        map.serialize_entry("value", &JsonSafeIBigSerializer(&self.value))?;
         map.serialize_entry("rolls", &DiceRollsSerializer(&self.rolls))?;
 
         map.end()
@@ -151,30 +149,9 @@ impl<'a> serde::Serialize for RollsSerializer<'a> {
 
         let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
         for roll in self.0 {
-            match ibig_to_serde(&IBig::from(roll)) {
-                Ok(value) => seq.serialize_element(&value)?,
-                Err(value) => seq.serialize_element(&value)?,
-            };
+            seq.serialize_element(&JsonSafeIBigSerializer(&roll.into()))?;
         }
         seq.end()
-    }
-}
-
-const MAX_SAFE_INTEGER: i64 = 9007199254740991;
-const MIN_SAFE_INTEGER: i64 = -9007199254740991;
-
-fn ibig_to_serde(value: &IBig) -> Result<i64, String> {
-    let value_str = value.to_string();
-
-    match <i64 as std::str::FromStr>::from_str(&value_str) {
-        Ok(value) => {
-            if value > MAX_SAFE_INTEGER || value < MIN_SAFE_INTEGER {
-                return Err(value_str);
-            }
-
-            Ok(value)
-        }
-        Err(_) => Err(value_str),
     }
 }
 
