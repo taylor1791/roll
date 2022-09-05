@@ -1,6 +1,7 @@
 use crate::command::{Command, Roll};
 use clap::Parser;
 use log::warn;
+use roll::expression::{Evaluand, Expression};
 
 pub struct Arguments {
     colors: bool,
@@ -46,7 +47,7 @@ impl CliCommand {
 }
 
 pub enum CliOutput {
-    Roll(Roll, crate::expression::Evaluand),
+    Roll(Roll, Evaluand),
 }
 
 impl CliOutput {
@@ -99,7 +100,7 @@ struct RawArguments {
     seed: Option<u64>,
 
     /// The dice expression to evaluate.
-    expression: crate::expression::Expression,
+    expression: Expression,
 }
 
 impl std::fmt::Debug for CliOutput {

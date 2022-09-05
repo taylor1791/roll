@@ -4,8 +4,6 @@ use log::trace;
 
 mod cli;
 mod command;
-mod expression;
-mod ibig_serializer;
 
 fn main() -> Result<()> {
     setup_panic!();

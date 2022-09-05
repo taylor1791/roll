@@ -1,6 +1,6 @@
 mod roll;
 
-pub use roll::Roll;
+pub use self::roll::Roll;
 
 pub trait Command {
     type Output;
