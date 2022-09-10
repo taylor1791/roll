@@ -16,18 +16,15 @@ pub fn evaluate(
         } => {
             let left = evaluate(rng, rolls, left_e)?;
             let right = evaluate(rng, rolls, right_e)?;
-            let right = super::parse::die(&right, right_e)?;
+            let right = UBig::from(super::parse::die(&right, right_e)?);
 
             let mut sum = IBig::zero();
-            let mut n = UBig::zero();
-            while n < super::parse::dice(&left, left_e)? {
+            for _ in 0..super::parse::dice(&left, left_e)? {
                 let roll = int(rng, &right);
                 sum += IBig::from(&roll);
 
                 let dice_rolls = rolls.entry(right.clone()).or_insert(vec![]);
                 dice_rolls.push(roll);
-
-                n += 1_usize;
             }
 
             Ok(sum)
