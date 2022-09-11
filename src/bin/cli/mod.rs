@@ -1,4 +1,5 @@
 use crate::command::{Command, Roll};
+use crate::json;
 use clap::Parser;
 use log::warn;
 use roll::expression::{Evaluand, Expression};
@@ -54,7 +55,7 @@ impl CliOutput {
     pub fn formatter(self, args: Arguments) -> Box<dyn std::fmt::Display> {
         if args.json {
             return match self {
-                CliOutput::Roll(_, output) => Box::from(JsonFormatter(output)),
+                CliOutput::Roll(_, output) => Box::from(JsonFormatter(json::Evaluand::new(output))),
             };
         }
 

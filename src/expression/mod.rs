@@ -1,4 +1,3 @@
-use crate::ibig_serializer::JsonSafeIBigSerializer;
 use ibig::{IBig, UBig};
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
@@ -86,9 +85,6 @@ pub struct ParseError {
     token: Option<(usize, usize)>,
 }
 
-struct DiceRollsSerializer<'a>(&'a HashMap<UBig, Vec<UBig>>);
-struct RollsSerializer<'a>(&'a Vec<UBig>);
-
 fn convert_error(input: &str, nom_error: nom::error::VerboseError<&str>) -> ParseError {
     let (position, length) = match nom_error.errors.as_slice() {
         [(substring, _), ..] => (nom::Offset::offset(input, substring), substring.len()),
@@ -107,51 +103,6 @@ fn convert_error(input: &str, nom_error: nom::error::VerboseError<&str>) -> Pars
             expression: String::from(input),
             token: Some((position, length)),
         }
-    }
-}
-
-impl serde::Serialize for Evaluand {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeMap;
-
-        let mut map = serializer.serialize_map(Some(2))?;
-        map.serialize_entry("value", &JsonSafeIBigSerializer(&self.value))?;
-        map.serialize_entry("rolls", &DiceRollsSerializer(&self.rolls))?;
-
-        map.end()
-    }
-}
-
-impl<'a> serde::Serialize for DiceRollsSerializer<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeMap;
-
-        let mut map = serializer.serialize_map(Some(self.0.len()))?;
-        for (sides, rolls) in self.0 {
-            map.serialize_entry(&format!("d{}", sides), &RollsSerializer(rolls))?;
-        }
-        map.end()
-    }
-}
-
-impl<'a> serde::Serialize for RollsSerializer<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeSeq;
-
-        let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
-        for roll in self.0 {
-            seq.serialize_element(&JsonSafeIBigSerializer(&roll.into()))?;
-        }
-        seq.end()
     }
 }
 

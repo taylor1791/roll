@@ -4,6 +4,7 @@ use log::trace;
 
 mod cli;
 mod command;
+mod json;
 
 fn main() -> Result<()> {
     setup_panic!();

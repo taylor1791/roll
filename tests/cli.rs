@@ -8,7 +8,7 @@ fn json() -> Result<(), Box<dyn std::error::Error>> {
     cmd.arg("--json").arg("--seed").arg("45").arg("3d6");
     cmd.assert()
         .success()
-        .stdout("{\"value\":11,\"rolls\":{\"d6\":[1,6,4]}}\n");
+        .stdout("{\"rolls\":{\"d6\":[1,6,4]},\"value\":11}\n");
 
     Ok(())
 }
