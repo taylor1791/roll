@@ -1,8 +1,8 @@
-use crate::command::{Command, Roll};
+use crate::command::{Command, Pmf, Roll};
 use crate::json;
 use clap::Parser;
 use log::warn;
-use roll::expression::{Evaluand, Expression};
+use roll::expression::Expression;
 
 pub struct Arguments {
     colors: bool,
@@ -15,7 +15,11 @@ impl Arguments {
         let seed = args
             .seed
             .unwrap_or_else(|| rand::RngCore::next_u64(&mut rand::rngs::OsRng));
-        let command = CliCommand::Roll(Roll::new(args.expression, seed));
+
+        let command = match args.pmf {
+            true => CliCommand::Pmf(Pmf::new(args.expression)),
+            false => CliCommand::Roll(Roll::new(args.expression, seed)),
+        };
 
         (
             command,
@@ -33,12 +37,18 @@ impl Arguments {
 
 #[derive(Debug)]
 pub enum CliCommand {
+    Pmf(Pmf),
     Roll(Roll),
 }
 
 impl CliCommand {
     pub fn exec(self) -> Result<CliOutput, anyhow::Error> {
         match self {
+            CliCommand::Pmf(pmf) => {
+                let output = pmf.exec()?;
+
+                Ok(CliOutput::Pmf(pmf, output))
+            }
             CliCommand::Roll(roll) => {
                 let output = roll.exec()?;
                 Ok(CliOutput::Roll(roll, output))
@@ -48,7 +58,8 @@ impl CliCommand {
 }
 
 pub enum CliOutput {
-    Roll(Roll, Evaluand),
+    Roll(Roll, <Roll as Command>::Output),
+    Pmf(Pmf, <Pmf as Command>::Output),
 }
 
 impl CliOutput {
@@ -56,11 +67,13 @@ impl CliOutput {
         if args.json {
             return match self {
                 CliOutput::Roll(_, output) => Box::from(JsonFormatter(json::Evaluand::new(output))),
+                CliOutput::Pmf(_, output) => Box::from(JsonFormatter(json::Pmf::new(output))),
             };
         }
 
         match self {
-            CliOutput::Roll(roll, output) => roll.formatter(args, output),
+            CliOutput::Roll(command, output) => command.formatter(args, output),
+            CliOutput::Pmf(command, output) => command.formatter(args, output),
         }
     }
 }
@@ -94,7 +107,7 @@ struct RawArguments {
 
     /// Display the distribution instead of rolling
     #[clap(long)]
-    pdf: bool,
+    pmf: bool,
 
     /// Seeds the rng
     #[clap(long)]
@@ -108,6 +121,7 @@ impl std::fmt::Debug for CliOutput {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
             CliOutput::Roll(_, output) => std::fmt::Debug::fmt(output, formatter),
+            CliOutput::Pmf(_, output) => std::fmt::Debug::fmt(output, formatter),
         }
     }
 }

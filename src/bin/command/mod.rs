@@ -1,6 +1,8 @@
+mod pmf;
 mod roll;
 
 pub use self::roll::Roll;
+pub use pmf::Pmf;
 
 pub trait Command {
     type Output;

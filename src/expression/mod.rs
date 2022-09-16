@@ -1,3 +1,4 @@
+use crate::combinatorics::Combinations;
 use ibig::{IBig, UBig};
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
@@ -6,6 +7,7 @@ mod interpreter;
 mod operators;
 mod parse;
 mod parser;
+mod pmf;
 
 #[allow(clippy::all)]
 mod precedence;
@@ -59,6 +61,12 @@ impl Expression {
         let value = interpreter::evaluate(&mut rng, &mut rolls, self)?;
 
         Ok(Evaluand { rolls, value })
+    }
+
+    pub fn pmf(&self) -> Result<crate::pmf::Pmf<IBig>, anyhow::Error> {
+        let mut combinations = Combinations::default();
+
+        pmf::pmf(self, &mut combinations)
     }
 
     fn operator(&self) -> Option<operators::Operator> {

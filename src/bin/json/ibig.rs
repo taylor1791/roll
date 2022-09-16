@@ -13,6 +13,16 @@ impl<'a> IBigSerializer<'a> {
     }
 }
 
+pub fn serialize_opt_ibig<S>(n: &Option<IBig>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match n {
+        None => serializer.serialize_none(),
+        Some(n) => serialize_ibig(n, serializer),
+    }
+}
+
 pub fn serialize_ibig<S>(n: &IBig, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,

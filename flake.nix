@@ -11,6 +11,7 @@
         buildInputs = [
           pkgs.cargo
           pkgs.clippy
+          pkgs.gnuplot # For criterion
           pkgs.rust-analyzer
           pkgs.rustc
           pkgs.rustfmt
