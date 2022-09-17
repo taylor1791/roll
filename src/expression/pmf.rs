@@ -52,6 +52,12 @@ pub fn pmf(e: &Expression, combinations: &mut Combinations) -> Result<Pmf<IBig>,
 
             Ok(left.cartesian_product(&right, |b, x| b.pow(*x)))
         }
+        Expression::Product { left, right, .. } => {
+            let left = pmf(left, combinations)?;
+            let right = pmf(right, combinations)?;
+
+            Ok(left.cartesian_product(&right, |l, r| l * r))
+        }
         Expression::Sum { left, right, .. } => {
             let left = pmf(left, combinations)?;
             let right = pmf(right, combinations)?;

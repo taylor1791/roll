@@ -58,16 +58,23 @@ pub const EXPONENT: Binary = Binary {
     space: true,
 };
 
-pub const DIFFERENCE: Binary = Binary {
+pub const PRODUCT: Binary = Binary {
     assoc: precedence::Assoc::Left,
     precedence: 5,
+    symbol: "*",
+    space: true,
+};
+
+pub const DIFFERENCE: Binary = Binary {
+    assoc: precedence::Assoc::Left,
+    precedence: 6,
     symbol: "-",
     space: true,
 };
 
 pub const SUM: Binary = Binary {
     assoc: precedence::Assoc::Left,
-    precedence: 5,
+    precedence: 6,
     symbol: "+",
     space: true,
 };

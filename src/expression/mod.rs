@@ -32,6 +32,11 @@ pub enum Expression {
         right: Box<Expression>,
         operator: operators::Binary,
     },
+    Product {
+        left: Box<Expression>,
+        right: Box<Expression>,
+        operator: operators::Binary,
+    },
     Sum {
         left: Box<Expression>,
         right: Box<Expression>,
@@ -78,6 +83,7 @@ impl Expression {
             Expression::Exponentiation { .. } => {
                 Some(operators::Operator::Binary(operators::EXPONENT))
             }
+            Expression::Product { .. } => Some(operators::Operator::Binary(operators::PRODUCT)),
             Expression::Sum { .. } => Some(operators::Operator::Binary(operators::SUM)),
             Expression::Minus { .. } => Some(operators::Operator::Unary(operators::MINUS)),
             Expression::Plus { .. } => Some(operators::Operator::Unary(operators::PLUS)),
@@ -139,6 +145,11 @@ impl ToString for Expression {
                 operator,
             }
             | Expression::Exponentiation {
+                left,
+                right,
+                operator,
+            }
+            | Expression::Product {
                 left,
                 right,
                 operator,

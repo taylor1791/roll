@@ -42,6 +42,9 @@ pub fn evaluate(
             let right = super::parse::exponent(&right, right_e)?;
             Ok(left.pow(right))
         }
+        Expression::Product { left, right, .. } => {
+            Ok(evaluate(rng, rolls, left)? * evaluate(rng, rolls, right)?)
+        }
         Expression::Sum { left, right, .. } => {
             Ok(evaluate(rng, rolls, left)? + evaluate(rng, rolls, right)?)
         }

@@ -124,6 +124,24 @@ fn dice_precedence(seed: u64) -> bool {
 }
 
 #[quickcheck]
+fn product_precedence(seed: u64) -> bool {
+    let expression = Expression::from_str("1 + 4 * 2 ** 3").unwrap();
+    let pmf = pmf(&expression).unwrap();
+    let Evaluand { value, .. } = expression.eval(seed).unwrap();
+
+    in_range(&pmf, value, 33, 33) && expression.to_string() == "1 + 4 * 2 ** 3"
+}
+
+#[quickcheck]
+fn product_literals(seed: u64) -> bool {
+    let expression = Expression::from_str("2*-3 * 4").unwrap();
+    let pmf = pmf(&expression).unwrap();
+    let Evaluand { value, .. } = expression.eval(seed).unwrap();
+
+    in_range(&pmf, value, -24, -24) && expression.to_string() == "2 * -3 * 4"
+}
+
+#[quickcheck]
 fn difference_literals(seed: u64) -> bool {
     let expression = Expression::from_str("0-1 - 2").unwrap();
     let pmf = pmf(&expression).unwrap();

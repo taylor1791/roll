@@ -27,6 +27,7 @@ fn expression(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
         alt((
             binary_op(operators::DICE),
             binary_op(operators::EXPONENT),
+            binary_op(operators::PRODUCT),
             binary_op(operators::DIFFERENCE),
             binary_op(operators::SUM),
         )),
@@ -51,6 +52,12 @@ fn expression(i: &str) -> IResult<&str, Expression, VerboseError<&str>> {
                         left: Box::from(left),
                         right: Box::from(right),
                         operator: operators::EXPONENT,
+                    })
+                } else if operator == operators::PRODUCT.symbol {
+                    Ok::<Expression, Expression>(Expression::Product {
+                        left: Box::from(left),
+                        right: Box::from(right),
+                        operator: operators::PRODUCT,
                     })
                 } else if operator == operators::SUM.symbol {
                     Ok::<Expression, Expression>(Expression::Sum {
