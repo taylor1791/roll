@@ -58,6 +58,13 @@ pub const EXPONENT: Binary = Binary {
     space: true,
 };
 
+pub const IDIVISION: Binary = Binary {
+    assoc: precedence::Assoc::Left,
+    precedence: 5,
+    symbol: "/",
+    space: true,
+};
+
 pub const PRODUCT: Binary = Binary {
     assoc: precedence::Assoc::Left,
     precedence: 5,

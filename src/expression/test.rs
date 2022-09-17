@@ -124,12 +124,12 @@ fn dice_precedence(seed: u64) -> bool {
 }
 
 #[quickcheck]
-fn product_precedence(seed: u64) -> bool {
-    let expression = Expression::from_str("1 + 4 * 2 ** 3").unwrap();
+fn product_iquotient_precedence(seed: u64) -> bool {
+    let expression = Expression::from_str("1 + 12 / 4 * 2 ** 3").unwrap();
     let pmf = pmf(&expression).unwrap();
     let Evaluand { value, .. } = expression.eval(seed).unwrap();
 
-    in_range(&pmf, value, 33, 33) && expression.to_string() == "1 + 4 * 2 ** 3"
+    in_range(&pmf, value, 25, 25) && expression.to_string() == "1 + 12 / 4 * 2 ** 3"
 }
 
 #[quickcheck]
@@ -139,6 +139,15 @@ fn product_literals(seed: u64) -> bool {
     let Evaluand { value, .. } = expression.eval(seed).unwrap();
 
     in_range(&pmf, value, -24, -24) && expression.to_string() == "2 * -3 * 4"
+}
+
+#[quickcheck]
+fn iquotient_literals(seed: u64) -> bool {
+    let expression = Expression::from_str("120 / -5 / -7").unwrap();
+    let pmf = pmf(&expression).unwrap();
+    let Evaluand { value, .. } = expression.eval(seed).unwrap();
+
+    in_range(&pmf, value, 3, 3) && expression.to_string() == "120 / -5 / -7"
 }
 
 #[quickcheck]

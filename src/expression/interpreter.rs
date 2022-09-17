@@ -42,6 +42,15 @@ pub fn evaluate(
             let right = super::parse::exponent(&right, right_e)?;
             Ok(left.pow(right))
         }
+        Expression::IQuotient {
+            left,
+            right: right_e,
+            ..
+        } => {
+            let right = evaluate(rng, rolls, right_e)?;
+            let right = super::parse::nonzero(&right, right_e)?;
+            Ok(evaluate(rng, rolls, left)? / right)
+        }
         Expression::Product { left, right, .. } => {
             Ok(evaluate(rng, rolls, left)? * evaluate(rng, rolls, right)?)
         }

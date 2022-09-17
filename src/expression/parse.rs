@@ -44,6 +44,20 @@ pub fn exponent(x: &IBig, expression: &Expression) -> Result<usize, anyhow::Erro
     }
 }
 
+pub fn nonzero<'a, A>(n: &'a A, expression: &Expression) -> Result<&'a A, anyhow::Error>
+where
+    A: PartialEq + Zero,
+{
+    if n == &A::zero() {
+        return Err(anyhow::anyhow!(format!(
+            "The divisor in the expression {} evaluated to 0. Dividing by zero is undefined.",
+            expression.to_string(),
+        )));
+    }
+
+    Ok(n)
+}
+
 fn to_usize(n: &IBig, expression: &Expression) -> Result<usize, (Ordering, anyhow::Error)> {
     if n < &IBig::zero() {
         return Err((
